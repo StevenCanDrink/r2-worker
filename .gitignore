@@ -1,0 +1,17 @@
+# base
+.env
+
+# rust
+/target
+--no-vcs-ignores
+db.sqlite
+/scripts
+*.env
+
+# nodejs
+node_modules/
+package-lock.json
+assets/
+
+
+

@@ -1,0 +1,7 @@
+name = "r2-express"
+compatibility_date = "2024-03-20"
+
+[[r2_buckets]]
+binding = "R2_BUCKET" # Name used in the app
+bucket_name = "giftpromotion"
+preview_bucket_name = "giftpromotion"
