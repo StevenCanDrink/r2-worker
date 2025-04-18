@@ -4,11 +4,21 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { S3Client, PutObjectCommand,DeleteObjectCommand } from "@aws-sdk/client-s3";
 
+const corsOptions = {
+  origin: [
+    'http://localhost:8080',
+    'https://giftpromotion-fe-fd54814e0d3f.herokuapp.com/', // Your frontend
+  ],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  optionsSuccessStatus: 204
+};
+
+
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
-app.use(cors());
+const PORT = process.env.PORT || 4500;
+app.use(cors(corsOptions));
 
 
 const s3 = new S3Client({
@@ -33,13 +43,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
         const file = req.file;
         const idProduct = req.body.idproduct;
-
+        const  isComment= req.body.isComment || false ;
         if (!file) return res.status(400).json({ error: "No file uploaded" });
         if (!idProduct) return res.status(400).json({ error: "idproduct is required" });
 
         console.log("Received file:", file);
 
-        const fileKey = `${idProduct}/${file.originalname}`;
+        const fileKey = `${isComment ? 'comment/' : ''}${idProduct}/${file.originalname}`;
 
         const uploadParams = {
             Bucket: 'giftpromotion',
@@ -95,6 +105,31 @@ app.delete("/delete/:idProduct/:fileName", async (req, res) => {
     return res.status(500).json({ error: "Failed to delete image" });
   }
 });
+
+
+app.delete("/delComment/:idProduct/:fileName", async (req, res) => {
+  try {
+    const { idProduct, fileName } = req.params;
+    const fileKey = `comment/${idProduct}/${fileName}`;
+
+    await s3.send(
+        new DeleteObjectCommand({
+          Bucket: process.env.R2_BUCKET_NAME,
+          Key: fileKey,
+        })
+      );
+
+    return res.json({
+      ok: true,
+      message: "File deleted successfully",
+      file: fileKey,
+    });
+  } catch (error) {
+    console.error("Delete error:", error);
+    return res.status(500).json({ error: "Failed to delete image" });
+  }
+});
+
 
 // Start the Express server
 app.listen(PORT, () => {
