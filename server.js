@@ -12,6 +12,7 @@ const corsOptions = {
   origin: [
     "http://localhost:8080",
     "https://giftpromotion-fe-fd54814e0d3f.herokuapp.com", // Your frontend
+    "https://quatang8k.vip", // Your frontend
   ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessStatus: 204,
