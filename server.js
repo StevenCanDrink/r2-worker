@@ -7,13 +7,16 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { TypeEntity } from "./constant.js";
 
 const corsOptions = {
   origin: [
     "http://localhost:8080",
     "https://giftpromotion-fe-fd54814e0d3f.herokuapp.com", // Your frontend
     "https://quatang8k.vip", // Your frontend
+    "https://charity8k-fe-c8edadfb4d06.herokuapp.com",
   ],
+  // origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessStatus: 204,
 };
@@ -23,14 +26,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4500;
 app.use(cors(corsOptions));
-
 const s3 = new S3Client({
   region: "us-east-1", // Cloudflare R2 uses 'auto' as the region
-  endpoint: "https://2eb42e9bd8a2237f453bb35c9be59094.r2.cloudflarestorage.com", // Replace with your Cloudflare R2 endpoint
+  endpoint: process.env.R2_ENDPOINT, // Replace with your Cloudflare R2 endpoint
   credentials: {
-    accessKeyId: "e8f5759376e689374b7c3731b1f927c2",
-    secretAccessKey:
-      "087dd13c10adbf717bcaf62b18dc9dbf1603701145f440a1a9492944d20f25c7",
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   },
 });
 
@@ -38,14 +39,18 @@ const s3 = new S3Client({
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// giftpromotion
+
 // ✅ Upload Route
-app.post("/upload", upload.single("file"), async (req, res) => {
+app.post("/gf/upload/", upload.single("file"), async (req, res) => {
   try {
     console.log("Received request:", req.body);
 
     const file = req.file;
     const idProduct = req.body.idproduct;
     const isComment = req.body.isComment || false;
+    const bucketName = req.params.bucketname; // Get bucketname from path parameter
+
     if (!file) return res.status(400).json({ error: "No file uploaded" });
     if (!idProduct)
       return res.status(400).json({ error: "idproduct is required" });
@@ -86,14 +91,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 });
 
 // ✅ Delete Image from Cloudflare R2
-app.delete("/delete/:idProduct/:fileName", async (req, res) => {
+app.delete("/gf/delete/:idProduct/:fileName", async (req, res) => {
   try {
     const { idProduct, fileName } = req.params;
     const fileKey = `${idProduct}/${fileName}`;
 
     await s3.send(
       new DeleteObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
+        Bucket: "giftpromotion",
         Key: fileKey,
       })
     );
@@ -109,14 +114,87 @@ app.delete("/delete/:idProduct/:fileName", async (req, res) => {
   }
 });
 
-app.delete("/delComment/:idProduct/:fileName", async (req, res) => {
+app.delete("/gf/delComment/:idProduct/:fileName", async (req, res) => {
   try {
     const { idProduct, fileName } = req.params;
     const fileKey = `comment/${idProduct}/${fileName}`;
 
     await s3.send(
       new DeleteObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
+        Bucket: "giftpromotion",
+        Key: fileKey,
+      })
+    );
+
+    return res.json({
+      ok: true,
+      message: "File deleted successfully",
+      file: fileKey,
+    });
+  } catch (error) {
+    console.error("Delete error:", error);
+    return res.status(500).json({ error: "Failed to delete image" });
+  }
+});
+
+// charity
+
+app.post("/charity/upload/", upload.single("file"), async (req, res) => {
+  try {
+    console.log("Received request:", req.body);
+
+    const file = req.file;
+    const type = TypeEntity[+req.body.type || ""] ?? "";
+    const idEntity = req.body.idEntity || "";
+
+    if (!file) return res.status(400).json({ error: "No file uploaded" });
+    if (!type) return res.status(400).json({ error: "type is required" });
+    if (!idEntity) return res.status(400).json({ error: "type is required" });
+
+    console.log("Received file:", file);
+
+    const fileKey = `${type}/${idEntity}/${file.originalname}`;
+
+    const uploadParams = {
+      Bucket: "charity",
+      Key: fileKey,
+      Body: file.buffer, // Use file.buffer directly
+      ContentType: file.mimetype,
+    };
+
+    console.log("Uploading file:", uploadParams);
+
+    const response = await s3.send(new PutObjectCommand(uploadParams));
+
+    const { ETag, VersionId } = response;
+
+    // Send a JSON response to the client
+    res.status(200).json({
+      success: true,
+      message: "File uploaded successfully",
+      data: {
+        fileKey: fileKey,
+        ETag: ETag,
+        VersionId: VersionId,
+      },
+    });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ error: error.message, details: error });
+  }
+});
+
+app.delete("/charity/delete/", async (req, res) => {
+  try {
+    const idEntity = req.body.idEntity || "";
+    const fileName = req.body.fileName || "";
+    const type = TypeEntity[+req.body.type || ""] ?? "";
+
+    const fileKey = `${type}/${idEntity}/${fileName}`;
+
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: "charity",
         Key: fileKey,
       })
     );
