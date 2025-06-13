@@ -8,6 +8,7 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { TypeEntity } from "./constant.js";
+import { randomUUID } from "crypto"; // ES Modules (Node.js)
 
 const corsOptions = {
   origin: [
@@ -15,6 +16,7 @@ const corsOptions = {
     "https://giftpromotion-fe-fd54814e0d3f.herokuapp.com", // Your frontend
     "https://quatang8k.vip", // Your frontend
     "https://charity8k-fe-c8edadfb4d06.herokuapp.com",
+    "https://charity-fe-7f0cc6c50172.herokuapp.com",
   ],
   // origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
@@ -142,18 +144,13 @@ app.delete("/gf/delComment/:idProduct/:fileName", async (req, res) => {
 app.post("/charity/upload/", upload.single("file"), async (req, res) => {
   try {
     console.log("Received request:", req.body);
-
+    const uuid = randomUUID().split("-")[0];
     const file = req.file;
-    const type = TypeEntity[+req.body.type || ""] ?? "";
-    const idEntity = req.body.idEntity || "";
 
     if (!file) return res.status(400).json({ error: "No file uploaded" });
-    if (!type) return res.status(400).json({ error: "type is required" });
-    if (!idEntity) return res.status(400).json({ error: "type is required" });
 
     console.log("Received file:", file);
-
-    const fileKey = `${type}/${idEntity}/${file.originalname}`;
+    const fileKey = `${file.originalname.replace(/\.[^/.]+$/, "")}-${uuid}`;
 
     const uploadParams = {
       Bucket: "charity",
@@ -186,11 +183,11 @@ app.post("/charity/upload/", upload.single("file"), async (req, res) => {
 
 app.delete("/charity/delete/", async (req, res) => {
   try {
-    const idEntity = req.body.idEntity || "";
     const fileName = req.body.fileName || "";
-    const type = TypeEntity[+req.body.type || ""] ?? "";
 
-    const fileKey = `${type}/${idEntity}/${fileName}`;
+    if (!fileName) return res.status(400).json({ error: "No file Name" });
+
+    const fileKey = `${fileName}`;
 
     await s3.send(
       new DeleteObjectCommand({
