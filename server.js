@@ -181,9 +181,9 @@ app.post("/charity/upload/", upload.single("file"), async (req, res) => {
   }
 });
 
-app.delete("/charity/delete/", async (req, res) => {
+app.delete("/charity/delete/:fileName", async (req, res) => {
   try {
-    const fileName = req.body.fileName || "";
+    const { fileName } = req.params;
 
     if (!fileName) return res.status(400).json({ error: "No file Name" });
 

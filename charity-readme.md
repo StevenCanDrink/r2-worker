@@ -5,7 +5,5 @@ payload {
 file: FileType
 }
 
-delete_file (delete /charity/delete)
-payload {
-fileName: String,
-}
+delete_file (delete /charity/delete/:fileName)
+path
