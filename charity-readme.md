@@ -1,9 +1,11 @@
-## charity
+# charity && hrbio
 
-upload_file (post /charity/upload)
-payload {
+var project: charity||biohr
+
+upload_file (post /{project}/upload)
+path + payload {
 file: FileType
 }
 
-delete_file (delete /charity/delete/:fileName)
+delete_file (delete /{project}/delete/{fileName})
 path

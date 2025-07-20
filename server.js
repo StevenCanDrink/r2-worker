@@ -17,6 +17,7 @@ const corsOptions = {
     "https://quatang8k.vip", // Your frontend
     "https://charity8k-fe-c8edadfb4d06.herokuapp.com",
     "https://charity-fe-7f0cc6c50172.herokuapp.com",
+    "https://biohr8k-5bc4038ab215.herokuapp.com",
   ],
   // origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
@@ -192,6 +193,76 @@ app.delete("/charity/delete/:fileName", async (req, res) => {
     await s3.send(
       new DeleteObjectCommand({
         Bucket: "charity",
+        Key: fileKey,
+      })
+    );
+
+    return res.json({
+      ok: true,
+      message: "File deleted successfully",
+      file: fileKey,
+    });
+  } catch (error) {
+    console.error("Delete error:", error);
+    return res.status(500).json({ error: "Failed to delete image" });
+  }
+});
+
+app.post("/:project/upload/", upload.single("file"), async (req, res) => {
+  try {
+    console.log("Received request:", req.body);
+    console.log("params request:", req.params);
+
+    const { project } = req.params;
+
+    const uuid = randomUUID().split("-")[0];
+    const file = req.file;
+
+    if (!file) return res.status(400).json({ error: "No file uploaded" });
+
+    console.log("Received file:", file);
+    const fileKey = `${file.originalname.replace(/\.[^/.]+$/, "")}-${uuid}`;
+
+    const uploadParams = {
+      Bucket: project,
+      Key: fileKey,
+      Body: file.buffer, // Use file.buffer directly
+      ContentType: file.mimetype,
+    };
+
+    console.log("Uploading file:", uploadParams);
+
+    const response = await s3.send(new PutObjectCommand(uploadParams));
+
+    const { ETag, VersionId } = response;
+
+    // Send a JSON response to the client
+    res.status(200).json({
+      success: true,
+      message: "File uploaded successfully",
+      data: {
+        fileKey: fileKey,
+        ETag: ETag,
+        VersionId: VersionId,
+      },
+    });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ error: error.message, details: error });
+  }
+});
+
+app.delete("/:project/delete/:fileName", async (req, res) => {
+  try {
+    const { project, fileName } = req.params;
+
+    if (!fileName) return res.status(400).json({ error: "No file Name" });
+
+    const fileKey = `${fileName}`;
+
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: project,
         Key: fileKey,
       })
     );
