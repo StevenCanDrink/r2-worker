@@ -18,6 +18,8 @@ const corsOptions = {
     "https://charity8k-fe-c8edadfb4d06.herokuapp.com",
     "https://charity-fe-7f0cc6c50172.herokuapp.com",
     "https://biohr8k-5bc4038ab215.herokuapp.com",
+    "https://media8k.com",
+    "https://bio.tuyendung8k.com",
   ],
   // origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
